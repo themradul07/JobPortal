@@ -1,0 +1,97 @@
+"use client"
+import { auth_service, useAppData } from '@/context/AppContext'
+import axios from 'axios'
+import { redirect, useRouter } from 'next/navigation'
+import React, { FormEvent, useState } from 'react'
+import toast from 'react-hot-toast'
+import Cookies from 'js-cookie'
+import { Label } from '@/components/ui/label'
+import { ArrowRight, Key, Lock, Mail } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { Input } from '@/components/ui/input'
+import Loading from '@/components/loading'
+
+const LoginPage = () => {
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
+    const [btnLoading, setBtnLoading] = useState(false)
+
+    const { isAuth, setUser, loading, setIsAuth, setLoading } = useAppData();
+    const router = useRouter();
+
+    if (isAuth) return redirect('/');
+    const submitHandler = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setBtnLoading(true);
+        try {
+            const { data } = await axios.post(`${auth_service}/api/auth/login`, {
+                email, password
+            });
+            toast.success(data.message);
+            Cookies.set("token", data?.token, {
+                expires: 15,
+                secure: true,
+                path: '/'
+            })
+            setUser(data.user);
+            setIsAuth(true);
+        } catch (e: any) {
+            toast.error(e.response?.data?.message || "Something went wrong");
+            console.log("this is the error:", e)
+        } finally {
+            setBtnLoading(false);
+        }
+    }
+    if (loading) return <Loading />
+    return (
+        <div className='min-h-screen flex items-center justify-center px-4 py-12'>
+            <div className='w-full max-w-md'>
+                <div className='text-center mb-8'>
+                    <h1 className='text-3xl font-bold'>Welcome back to HireBridge</h1>
+                    <p className='text-gray-600 mt-2'>Sign in to continue your journey</p>
+                </div>
+                <div className='border border-gray-400 rounded-2xl p-8 shadow-lg backdrop-blur-sm'>
+                    <form onSubmit={submitHandler} className='space-y-5'>
+                        <div className='space-y-2'>
+                            <Label htmlFor='email' className='text-sm font-medium'> Email Address</Label>
+                            <div className='relative'>
+                                <Mail className='icon-style' />
+                                <Input id="email" type="email" onChange={e => setEmail(e.target.value)} required className='pl-10 h-11' value={email} placeholder='you@example.com' />
+                            </div>
+                        </div>
+                        <div className='space-y-2'>
+                            <Label htmlFor='password' className='text-sm font-medium'> Password</Label>
+                            <div className='relative'>
+                                <Lock className='icon-style' />
+                                <Input id="password" type="password" onChange={e => setPassword(e.target.value)} required className='pl-10 h-11' value={password} placeholder='********' />
+                            </div>
+                            <div className='flex items-center justify-end'>
+                                <Link href={"/forgot"} className='text-sm text-blue-500 hover:underline transition-all'>Forgot Password?</Link>
+                            </div>
+                            <Button type='submit' disabled={btnLoading} className='w-full h-11'>
+                                {btnLoading ? 'Logging in...' : 'Login'}
+                                <ArrowRight size={18} />
+                            </Button>
+                        </div>
+                    </form>
+
+                    <div className='mt-6 pt-6 border-t border-gray-400'>
+                        <p className='text-center text-sm'>
+                            Don't have an account? {" "}
+                            <Link href={"/register"} className='text-blue-500 font-medium hover:underline transition-all'>
+                                Create new account?
+                            </Link>
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    )
+}
+
+export default LoginPage
